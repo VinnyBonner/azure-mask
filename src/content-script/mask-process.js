@@ -5,6 +5,10 @@ const sensitiveDataRegex = /^([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a
  * const sensitiveDataRegex = /^\s*([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})|((([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,})))\s*$/;
  *
  */
+
+const sensitiveDataIPV4Regex = /(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/;// IPv4 address
+const sensitiveDataIPV6Regex = /((([0-9a-fA-F]){1,4})\:){7}([0-9a-fA-F]){1,4}/; // IPv6 address
+
 const sensitiveDataClassName = 'azdev-sensitive';
 const blurCss = 'filter: blur(10px); pointer-events: none;';
 const tagNamesToMatch = ['DIV']; // uppercase
@@ -72,7 +76,12 @@ getStoredMaskedStatus(isMasked => {
 
 // add class to elements already on the screen
 Array.from(document.querySelectorAll(tagNamesToMatch.join()))
-  .filter(e => shouldCheckContent(e) && sensitiveDataRegex.test(e.textContent))
+  .filter(e => shouldCheckContent(e) && (
+          sensitiveDataRegex.test(e.textContent) ||
+          sensitiveDataIPV4Regex.test(e.textContent) ||
+          sensitiveDataIPV6Regex.test(e.textContent)
+        ) 
+      )
   .forEach(e => e.classList.add(sensitiveDataClassName));
 
 // add class to elements that are added to DOM later
@@ -80,8 +89,11 @@ const observer = new MutationObserver(mutations => {
   mutations
     .filter(
       m =>
-        shouldCheckContent(m.target, m.type) &&
-        sensitiveDataRegex.test(m.target.textContent.trim())
+        shouldCheckContent(m.target, m.type) && (
+          sensitiveDataRegex.test(m.target.textContent.trim()) ||
+          sensitiveDataIPV4Regex.test(m.target.textContent.trim()) ||
+          sensitiveDataIPV6Regex.test(m.target.textContent.trim())
+        ) 
     )
     .forEach(m => {
       const node = m.type === 'characterData' ? m.target.parentNode : m.target;
